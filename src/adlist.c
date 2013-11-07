@@ -34,9 +34,9 @@
 #include "zmalloc.h"
 
 /*
- * 创建一个新列表
+ * 创建一个新链表
  *
- * 创建成功时返回列表，创建失败返回 NULL
+ * 创建成功时返回链表，创建失败返回 NULL
  *
  * T = O(1)
  */
@@ -44,7 +44,7 @@ list *listCreate(void)
 {
     struct list *list;
 
-    // 为列表结构分配内存
+    // 为链表结构分配内存
     if ((list = zmalloc(sizeof(*list))) == NULL)
         return NULL;
 
@@ -59,9 +59,9 @@ list *listCreate(void)
 }
 
 /*
- * 释放整个列表(以及列表包含的节点)
+ * 释放整个链表(以及链表包含的节点)
  *
- * T = O(N)，N 为列表的长度
+ * T = O(N)，N 为链表的长度
  */
 void listRelease(list *list)
 {
@@ -72,7 +72,7 @@ void listRelease(list *list)
     len = list->len;
     while(len--) {
         next = current->next;
-        // 如果列表有自带的 free 方法，那么先对节点值调用它
+        // 如果链表有自带的 free 方法，那么先对节点值调用它
         if (list->free) list->free(current->value);
         // 之后再释放节点
         zfree(current);
@@ -82,10 +82,10 @@ void listRelease(list *list)
 }
 
 /*
- * 新建一个包含给定 value 的节点，并将它加入到列表的表头
+ * 新建一个包含给定 value 的节点，并将它加入到链表的表头
  *
  * 出错时，返回 NULL ，不执行动作。
- * 成功时，返回传入的列表
+ * 成功时，返回传入的链表
  *
  * T = O(1)
  */
@@ -116,10 +116,10 @@ list *listAddNodeHead(list *list, void *value)
 }
 
 /*
- * 新建一个包含给定 value 的节点，并将它加入到列表的表尾
+ * 新建一个包含给定 value 的节点，并将它加入到链表的表尾
  *
  * 出错时，返回 NULL ，不执行动作。
- * 成功时，返回传入的列表
+ * 成功时，返回传入的链表
  *
  * T = O(1)
  */
@@ -189,14 +189,14 @@ list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
         node->next->prev = node;
     }
 
-    // 更新列表节点数量
+    // 更新链表长度
     list->len++;
 
     return list;
 }
 
 /*
- * 释放列表中给定的节点
+ * 释放链表中给定的节点
  * 清除节点私有值(private value)的工作由调用者完成
  *
  * T = O(1)
@@ -221,12 +221,12 @@ void listDelNode(list *list, listNode *node)
     // 释放节点
     zfree(node);
 
-    // 更新列表节点数量
+    // 更新链表长度
     list->len--;
 }
 
 /*
-* 创建列表 list 的一个迭代器，迭代方向由参数 direction 决定
+* 创建链表 list 的一个迭代器，迭代方向由参数 direction 决定
 * 
 * 每次对迭代器调用 listNext() ，迭代器就返回列表的下一个节点
 *
@@ -311,11 +311,11 @@ listNode *listNext(listIter *iter)
 }
 
 /*
- * 复制整个列表，成功返回列表的副本，内存不足而失败时返回 NULL 。
+ * 复制整个链表，成功返回链表的副本，内存不足而失败时返回 NULL 。
  *
  * 无论复制是成功或失败，输入列表都不会被修改。
  *
- * T = O(N)，N 为 orig 列表的长度
+ * T = O(N)，N 为 orig 链表的长度
  */
 list *listDup(list *orig)
 {
@@ -348,7 +348,7 @@ list *listDup(list *orig)
         } else
             value = node->value;
         
-        // 将新节点添加到新列表末尾
+        // 将新节点添加到新链表末尾
         if (listAddNodeTail(copy, value) == NULL) {
             listRelease(copy);
             listReleaseIterator(iter);
@@ -362,15 +362,15 @@ list *listDup(list *orig)
 }
 
 /*
- * 在列表中查找和 key 匹配的节点。
+ * 在链表中查找和 key 匹配的节点。
  *
- * 如果列表带有匹配器，那么匹配通过匹配器来进行。
- * 如果列表没有匹配器，那么直接将 key 和节点的值进行比对。
+ * 如果链表带有匹配器，那么匹配通过匹配器来进行。
+ * 如果链表没有匹配器，那么直接将 key 和节点的值进行比对。
  *
  * 匹配从表头开始，第一个匹配成功的节点会被返回
  * 如果匹配不成功，返回 NULL 。
  *
- * T = O(N)，N 为列表的长度
+ * T = O(N)，N 为链表的长度
  */
 listNode *listSearchKey(list *list, void *key)
 {
@@ -381,13 +381,13 @@ listNode *listSearchKey(list *list, void *key)
     iter = listGetIterator(list, AL_START_HEAD);
     while((node = listNext(iter)) != NULL) {
         if (list->match) {
-            // 使用列表自带的匹配器进行比对
+            // 使用链表自带的匹配器进行比对
             if (list->match(node->value, key)) {
                 listReleaseIterator(iter);
                 return node;
             }
         } else {
-            // 直接用列表的值来比对
+            // 直接用链表的值来比对
             if (key == node->value) {
                 listReleaseIterator(iter);
                 return node;
@@ -401,14 +401,14 @@ listNode *listSearchKey(list *list, void *key)
 }
 
 /*
- * 根据给定索引，返回列表中对应的节点
+ * 根据给定索引，返回链表中对应的节点
  *
  * 索引可以是正数，也可以是负数。
  * 正数从 0 开始计数，由表头开始；负数从 -1 开始计数，由表尾开始。
  *
- * 如果给定索引超出列表的返回，返回 NULL 。
+ * 如果给定索引超出链表的返回，返回 NULL 。
  *
- * T = O(N)，N 为列表的长度
+ * T = O(N)，N 为链表的长度
  */
 listNode *listIndex(list *list, long index) {
     listNode *n;
@@ -426,14 +426,14 @@ listNode *listIndex(list *list, long index) {
 }
 
 /*
- * 取出列表的尾节点，将它插入到表头，成为新的表头节点
+ * 取出链表的尾节点，将它插入到表头，成为新的表头节点
  *
  * T = O(1)
  */
 void listRotate(list *list) {
     listNode *tail = list->tail;
 
-    // 列表只有一个元素
+    // 链表只有一个元素
     if (listLength(list) <= 1) return;
 
     // 取出尾节点
